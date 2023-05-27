@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -47,6 +48,7 @@ func main() {
 	apiGroup.GET("/kenobi", healthCheck)
 	apiGroup.GET("/rate", getRate)
 	apiGroup.POST("/subscribe", subscribeEmail)
+	apiGroup.POST("/sendEmails", sendEmails)
 
 	fmt.Println("Server started")
 	defer fmt.Println("Server stopped")
@@ -59,37 +61,12 @@ func healthCheck(c echo.Context) error {
 }
 
 func getRate(c echo.Context) error {
-	url := fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbol=%v", symbol)
-
-	resp, err := http.Get(url)
+	rate, err := getBinanceRate()
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Api call error: %v", err.Error())})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
-	defer resp.Body.Close()
-
-	log.Println("Response status code:", resp.StatusCode)
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Failed to parse response from Binance: %v", err.Error())})
-	}
-
-	// Check for error response
-	var errResp ErrorResponse
-	if err := json.Unmarshal(body, &errResp); err == nil && errResp.Code != 0 {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Binance API error: %v", errResp.Msg)})
-	}
-
-	var rateResp RateResponse
-	if err := json.Unmarshal(body, &rateResp); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"message": fmt.Sprintf("Failed to parse response from Binance: %v", err.Error()),
-		})
-	}
-
-	log.Println(string(body))
-
-	return c.JSONBlob(http.StatusOK, []byte(rateResp.Price))
+	
+	return c.JSON(http.StatusOK, rate)
 }
 
 func subscribeEmail(c echo.Context) error {
@@ -105,11 +82,11 @@ func subscribeEmail(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Read file error: %v", err.Error())})
 	}
 
-	log.Println(emails)
+	log.Printf("[subscribeEmail] emails: %v", emails)
 
 	for _, e := range emails {
 		if e.Email == email {
-			return c.JSON(http.StatusConflict, map[string]string{"error": fmt.Sprintf("Email already exists from %v", e.CreatedAt)})
+			return c.JSON(http.StatusConflict, map[string]string{"error": fmt.Sprintf("Email already exists from '%v'", e.CreatedAt)})
 		}
 	}
 
@@ -123,7 +100,38 @@ func subscribeEmail(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Write file error: %v", err.Error())})
 	}
 
-	return c.JSON(http.StatusOK, emails)
+	return c.JSON(http.StatusOK, map[string]string{"message": fmt.Sprintf("E-mail '%v' додано.", email)})
+}
+
+func sendEmails(c echo.Context) error {
+	json, err := readJson("emails.json")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Read file error: %v", err.Error())})
+	}
+
+	log.Printf("[sendEmails] json: %v", json)
+
+	// Create a new array without the CreatedAt field
+	emails := make([]string, len(json))
+	for i, email := range json {
+		emails[i] = email.Email
+	}
+
+	log.Printf("[sendEmails] emails: %v", emails)
+
+	rate, err := getBinanceRate()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	log.Printf("[sendEmails] rate: %f", rate)
+
+	// TODO: implement sending emails with net/smtp
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "E-mailʼи відправлено",
+		"emails":  fmt.Sprintf("%v", emails),
+	})
 }
 
 func parseFormData(c echo.Context) (string, error) {
@@ -228,3 +236,41 @@ func writeJson(filePath string, emails []Email) error {
 	return nil
 }
 
+func getBinanceRate () (float64, error ){
+	url := fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbol=%v", symbol)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return 0, errors.New(fmt.Sprintf("Api call error: %v", err.Error()))
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, errors.New(fmt.Sprintf("Failed to parse response from Binance: %v", err.Error()))
+	}
+
+	// Check for error response
+	var errResp ErrorResponse
+	if err := json.Unmarshal(body, &errResp); err == nil && errResp.Code != 0 {
+		return 0, errors.New(fmt.Sprintf("Binance API error: %v", errResp.Msg))
+	}
+
+	// Parse response
+	var rateResp RateResponse
+	if err := json.Unmarshal(body, &rateResp); err != nil {
+		return 0, errors.New(fmt.Sprintf("Failed to parse response from Binance: %v", err.Error()))
+	}
+
+	log.Printf("[getBinanceRate] response.body: %v", string(body))
+
+	// Convert string to integer
+	num, err := strconv.ParseFloat(rateResp.Price, 64)
+	if err != nil {
+		fmt.Print("Error converting string to integer:", err)
+		return 0, errors.New(fmt.Sprintf("Failed to convert rateResp.Price from string to integer: %v", err.Error()))
+	}
+
+	return num, nil
+}
