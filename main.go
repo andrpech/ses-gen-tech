@@ -54,7 +54,7 @@ func getRate(c echo.Context) error {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, `Error occurred: `+err.Error())
+		return c.String(http.StatusBadRequest, `Error occurred: `+err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -62,18 +62,18 @@ func getRate(c echo.Context) error {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, `Error occurred: `+err.Error())
+		return c.String(http.StatusBadRequest, `Error occurred: `+err.Error())
 	}
 
 	// Check for error response
 	var errResp ErrorResponse
 	if err := json.Unmarshal(body, &errResp); err == nil && errResp.Code != 0 {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": `Error from Binance API: ` + errResp.Msg})
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": `Error from Binance API: ` + errResp.Msg})
 	}
 
 	var rateResp RateResponse
 	if err := json.Unmarshal(body, &rateResp); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
+		return c.JSON(http.StatusBadRequest, map[string]string{
 			"message": `Failed to parse response from Binance: ` + err.Error(),
 		})
 	}
@@ -82,3 +82,5 @@ func getRate(c echo.Context) error {
 
 	return c.JSONBlob(http.StatusOK, body)
 }
+
+
