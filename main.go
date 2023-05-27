@@ -35,11 +35,10 @@ func main() {
 	apiGroup := e.Group(apiPath)
 
 	apiGroup.GET("/kenobi", healthCheck)
-
 	apiGroup.GET("/rate", getRate)
 
-	fmt.Println("Server started")
 
+	fmt.Println("Server started")
 	defer fmt.Println("Server stopped")
 
 	e.Start(port)
@@ -80,7 +79,7 @@ func getRate(c echo.Context) error {
 
 	log.Println(string(body))
 
-	return c.JSONBlob(http.StatusOK, body)
+	return c.JSONBlob(http.StatusOK, []byte(rateResp.Price))
 }
 
 
