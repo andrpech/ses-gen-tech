@@ -59,11 +59,11 @@ func healthCheck(c echo.Context) error {
 }
 
 func getRate(c echo.Context) error {
-	url := `https://api.binance.com/api/v3/ticker/price?symbol=` + symbol
+	url := fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbols=%v", symbol)
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": `Api call error: ` + err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Api call error: %v", err.Error())})
 	}
 	defer resp.Body.Close()
 
@@ -71,19 +71,19 @@ func getRate(c echo.Context) error {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": `Failed to parse response from Binance: ` + err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Failed to parse response from Binance: %v", err.Error())})
 	}
 
 	// Check for error response
 	var errResp ErrorResponse
 	if err := json.Unmarshal(body, &errResp); err == nil && errResp.Code != 0 {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": `Binance API error: ` + errResp.Msg})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Binance API error: %v", errResp.Msg)})
 	}
 
 	var rateResp RateResponse
 	if err := json.Unmarshal(body, &rateResp); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"message": `Failed to parse response from Binance: ` + err.Error(),
+			"message": fmt.Sprintf("Failed to parse response from Binance: %v", err.Error()),
 		})
 	}
 
@@ -102,14 +102,14 @@ func subscribeEmail(c echo.Context) error {
 
 	emails, err := readJson("emails.json")
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": `Read file error : ` + err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Read file error: %v", err.Error())})
 	}
 
 	log.Println(emails)
 
 	for _, e := range emails {
 		if e.Email == email {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": `Email already exists from ` + e.CreatedAt})
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Email already exists from %v", e.CreatedAt)})
 		}
 	}
 
@@ -120,7 +120,7 @@ func subscribeEmail(c echo.Context) error {
 
 	err = writeJson("emails.json", emails)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": `Write file error : ` + err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Write file error: %v", err.Error())})
 	}
 
 	return c.JSON(http.StatusOK, emails)
@@ -143,7 +143,7 @@ func parseFormData(c echo.Context) (string, error) {
 	// Check for extra fields
 	for key := range formData {
 		if key != "email" {
-			return "", errors.New("Unexpected form field")
+			return "", errors.New(fmt.Sprintf("Unexpected form field: '%v'", key))
 		}
 	}
 
