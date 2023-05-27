@@ -1,0 +1,16 @@
+# GO
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# OS
+.DS_Store
