@@ -59,7 +59,7 @@ func healthCheck(c echo.Context) error {
 }
 
 func getRate(c echo.Context) error {
-	url := fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbols=%v", symbol)
+	url := fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbol=%v", symbol)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -109,7 +109,7 @@ func subscribeEmail(c echo.Context) error {
 
 	for _, e := range emails {
 		if e.Email == email {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Email already exists from %v", e.CreatedAt)})
+			return c.JSON(http.StatusConflict, map[string]string{"error": fmt.Sprintf("Email already exists from %v", e.CreatedAt)})
 		}
 	}
 
@@ -227,3 +227,4 @@ func writeJson(filePath string, emails []Email) error {
 
 	return nil
 }
+
