@@ -105,7 +105,7 @@ func (e *Endpoint) SendEmails(ctx echo.Context) error {
 </head>
 <body>
     <div class="content">
-        <img src="%s" alt="Header image">
+        <img src="%s" style="width:; max-width:600px; height:auto;" alt="Header image">
         <h1>Hello there</h1>
         <p>
             I trust this message finds you well amidst the bluster of the cosmos. I am writing to you from the dunes of Tatooine, under the twin suns where much is uncertain but the shifting sands.
@@ -134,11 +134,11 @@ func (e *Endpoint) SendEmails(ctx echo.Context) error {
             Your humble servant in the Force,<br>
             Ben Kenobi
         </p>
-        <img src="%s" alt="Footer image">
+        <img src="%s" style="width:100%; max-width:600px; height:auto;" alt="Footer image">
     </div>
 </body>
 </html>`
-	content := fmt.Sprintf(text, rate)
+	content := fmt.Sprintf(text, "https://github.com/andrpech/ses-gen-tech/blob/main/assets/img/header.jpg?raw=true", rate, "https://github.com/andrpech/ses-gen-tech/blob/main/assets/img/footer.jpg?raw=true")
 
 	json, err := e.s.ReadJson("db/emails.json")
 	if err != nil {
