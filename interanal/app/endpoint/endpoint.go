@@ -105,7 +105,7 @@ func (e *Endpoint) SendEmails(ctx echo.Context) error {
 </head>
 <body>
     <div class="content">
-        <img src="%s" style="width:; max-width:600px; height:auto;" alt="Header image">
+				<img align="center" alt="Header image" src="%s" width="600" style="max-width:1200px;padding-bottom:0;display:inline!important;vertical-align:bottom;border:0;height:auto;outline:none;text-decoration:none">
         <h1>Hello there</h1>
         <p>
             I trust this message finds you well amidst the bluster of the cosmos. I am writing to you from the dunes of Tatooine, under the twin suns where much is uncertain but the shifting sands.
@@ -113,10 +113,10 @@ func (e *Endpoint) SendEmails(ctx echo.Context) error {
 				<p>
 						In the boundless expanse of the universe, one constant has always intrigued me - the fluctuating dance of currency exchange rates. A dance that, in many ways, resembles the delicate balance between the light and dark sides of the Force.
 				</p>
-        <h4>At present, the Bitcoin (BTC) to Ukrainian Hryvnia (UAH) exchange rate:</h4>
+        <b>At present, the Bitcoin (BTC) to Ukrainian Hryvnia (UAH) exchange rate:</b>
         <p>
-            BTC: 1<br>
-            UAH: %f
+					<b>BTC:<b> 1<br>
+					<b>UAH:<b> %f
         </p>
 				<p>
 						Just as the Force flows through and around us, so too does the rhythm of finance, reminding us of the interconnectedness of all things. Like the murmurs of the midichlorians, these values whisper stories of the world economy's ebb and flow, the strength of currencies, and the dynamics of the crypto market.
@@ -134,7 +134,7 @@ func (e *Endpoint) SendEmails(ctx echo.Context) error {
             Your humble servant in the Force,<br>
             Ben Kenobi
         </p>
-        <img src="%s" style="width:100%; max-width:600px; height:auto;" alt="Footer image">
+				<img align="center" alt="Footer image" src="%s" width="600" style="max-width:1200px;padding-bottom:0;display:inline!important;vertical-align:bottom;border:0;height:auto;outline:none;text-decoration:none">
     </div>
 </body>
 </html>`
