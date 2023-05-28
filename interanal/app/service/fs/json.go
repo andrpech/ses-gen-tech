@@ -12,7 +12,18 @@ type Email struct {
 	CreatedAt string `json:"createdAt"`
 }
 
-func ReadJson(filePath string) ([]Email, error) {
+type FileService interface {
+	ReadJson(filePath string) ([]Email, error)
+	WriteJson(filePath string, emails []Email) error
+}
+
+type FS struct{}
+
+func NewFS() FileService {
+	return &FS{}
+}
+
+func (fs *FS) ReadJson(filePath string) ([]Email, error) {
 	var emails []Email
 
 	// Check if file exists
@@ -57,7 +68,7 @@ func ReadJson(filePath string) ([]Email, error) {
 	return emails, nil
 }
 
-func WriteJson(filePath string, emails []Email) error {
+func (fs *FS) WriteJson(filePath string, emails []Email) error {
 	// Marshal the emails slice to JSON
 	bytes, err := json.Marshal(emails)
 	if err != nil {

@@ -1,4 +1,4 @@
-package main
+package endpoint
 
 import (
 	"fmt"
@@ -8,74 +8,59 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/andrpech/ses-gen-tech/fs"
-	"github.com/andrpech/ses-gen-tech/mail"
-	"github.com/andrpech/ses-gen-tech/mw"
-	"github.com/andrpech/ses-gen-tech/rate"
-	"github.com/andrpech/ses-gen-tech/util"
+	"github.com/andrpech/ses-gen-tech/interanal/app/service/fs"
 )
 
-const (
-	port    string = ":8080"
-	apiPath string = "/api"
-)
+type Service interface {
+	GetBinanceRate() (float64, error)
+	ReadJson(filePath string) ([]fs.Email, error)
+	WriteJson(filePath string, emails []fs.Email) error
+	SendEmail(
+		subject string,
+		content string,
+		to []string,
+		cc []string,
+		bcc []string,
+		attachFiles []string,
+	) error
+}
 
-const (
-	smtpAuthAddress   = "smtp.gmail.com"
-	smtpServerAddress = "smtp.gmail.com:587"
-)
+type Endpoint struct {
+	s Service
+}
 
-func main() {
-	fmt.Println("Hello, gen tech!")
+func New(s Service) *Endpoint {
+	return &Endpoint{
+		s: s,
+	}
+}
 
-	e := echo.New()
+func (e *Endpoint) HealthCheck(ctx echo.Context) error {
+	return ctx.String(http.StatusOK, "Hello there")
+}
 
-	config, err := util.LoadConfig(".")
+func (e *Endpoint) GetRate(ctx echo.Context) error {
+	rate, err := e.s.GetBinanceRate()
 	if err != nil {
-		log.Fatal(err)
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	log.Printf("Config: %v", config)
-
-	apiGroup := e.Group(apiPath)
-
-	apiGroup.GET("/kenobi", healthCheck)
-	apiGroup.GET("/rate", getRate)
-	apiGroup.POST("/subscribe", subscribeEmail, mw.ParseFormData)
-	apiGroup.POST("/sendEmails", sendEmails)
-
-	fmt.Println("Server started")
-	defer fmt.Println("Server stopped")
-
-	e.Start(port)
+	return ctx.JSON(http.StatusOK, rate)
 }
 
-func healthCheck(c echo.Context) error {
-	return c.String(http.StatusOK, "Hello there")
-}
+func (e *Endpoint) SubscribeEmail(ctx echo.Context) error {
+	email := ctx.Get("email").(string)
 
-func getRate(c echo.Context) error {
-	rate, err := rate.GetBinanceRate()
+	emails, err := e.s.ReadJson("db/emails.json")
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
-	return c.JSON(http.StatusOK, rate)
-}
-
-func subscribeEmail(c echo.Context) error {
-	email := c.Get("email").(string)
-
-	emails, err := fs.ReadJson("db/emails.json")
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Read file error: %v", err.Error())})
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Read file error: %v", err.Error())})
 	}
 
 	log.Printf("[subscribeEmail] emails: %v", emails)
 
 	for _, e := range emails {
 		if e.Email == email {
-			return c.JSON(http.StatusConflict, map[string]string{"error": fmt.Sprintf("Email '%v' already exists from '%v'.", e.Email, e.CreatedAt)})
+			return ctx.JSON(http.StatusConflict, map[string]string{"error": fmt.Sprintf("Email '%v' already exists from '%v'.", e.Email, e.CreatedAt)})
 		}
 	}
 
@@ -84,28 +69,21 @@ func subscribeEmail(c echo.Context) error {
 		CreatedAt: time.Now().Format(time.RFC3339), // current time in RFC3339 format
 	})
 
-	err = fs.WriteJson("db/emails.json", emails)
+	err = e.s.WriteJson("db/emails.json", emails)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Write file error: %v", err.Error())})
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Write file error: %v", err.Error())})
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"message": fmt.Sprintf("E-mail '%v' додано.", email)})
+	return ctx.JSON(http.StatusOK, map[string]string{"message": fmt.Sprintf("E-mail '%v' додано.", email)})
 }
 
-func sendEmails(c echo.Context) error {
-	rate, err := rate.GetBinanceRate()
+func (e *Endpoint) SendEmails(ctx echo.Context) error {
+	rate, err := e.s.GetBinanceRate()
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
 	log.Printf("[sendEmails] rate: %f", rate)
-
-	config, err := util.LoadConfig(".")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	sender := mail.NewGmailSender(config.EmailSenderName, config.EmailSenderAddress, config.EmailSenderPassword)
 
 	subject := "A Galaxy Far, Far Away From The Current BTCUAH Exchange Rate"
 	text := `
@@ -134,9 +112,9 @@ func sendEmails(c echo.Context) error {
 	`
 	content := fmt.Sprintf(text, rate)
 
-	json, err := fs.ReadJson("emails.json")
+	json, err := e.s.ReadJson("db/emails.json")
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Read file error: %v", err.Error())})
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Read file error: %v", err.Error())})
 	}
 
 	log.Printf("[sendEmails] json: %v", json)
@@ -148,7 +126,7 @@ func sendEmails(c echo.Context) error {
 
 		to := []string{emails[i]}
 
-		err = sender.SendEmail(subject, content, to, nil, nil, nil)
+		err = e.s.SendEmail(subject, content, to, nil, nil, nil)
 		if err != nil {
 			log.Printf("[subscribeEmail] failed to send email to %v: %v", to, err)
 		} else {
@@ -158,7 +136,7 @@ func sendEmails(c echo.Context) error {
 
 	log.Printf("[sendEmails] emails: %v", emails)
 
-	return c.JSON(http.StatusOK, map[string]string{
+	return ctx.JSON(http.StatusOK, map[string]string{
 		"message": "E-mailʼи відправлено",
 		"emails":  fmt.Sprintf("%v", emails),
 	})

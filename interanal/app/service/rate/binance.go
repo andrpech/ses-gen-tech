@@ -12,7 +12,6 @@ import (
 
 const symbol string = "BTCUAH"
 
-
 type RateResponse struct {
 	Symbol string `json:"symbol"`
 	Price  string `json:"price"`
@@ -23,8 +22,17 @@ type ErrorResponse struct {
 	Msg  string `json:"msg"`
 }
 
+type Binance interface {
+	GetBinanceRate() (float64, error)
+}
 
-func GetBinanceRate () (float64, error ){
+type RateService struct{}
+
+func New() *RateService {
+	return &RateService{}
+}
+
+func (r *RateService) GetBinanceRate() (float64, error) {
 	url := fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbol=%v", symbol)
 
 	resp, err := http.Get(url)
