@@ -2,7 +2,7 @@ package service
 
 import (
 	"log"
-	
+
 	"github.com/andrpech/ses-gen-tech/interanal/app/service/fs"
 	"github.com/andrpech/ses-gen-tech/interanal/app/service/mail"
 	"github.com/andrpech/ses-gen-tech/interanal/app/service/rate"
