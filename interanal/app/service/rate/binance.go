@@ -59,7 +59,7 @@ func (r *RateService) GetBinanceRate() (float64, error) {
 		return 0, errors.New(fmt.Sprintf("Failed to parse response from Binance: %v", err.Error()))
 	}
 
-	log.Printf("[getBinanceRate] response.body: %v", string(body))
+	log.Printf("[GetBinanceRate] response.body: %v", string(body))
 
 	// Convert string to integer
 	num, err := strconv.ParseFloat(rateResp.Price, 64)

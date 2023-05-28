@@ -56,7 +56,7 @@ func (e *Endpoint) SubscribeEmail(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Read file error: %v", err.Error())})
 	}
 
-	log.Printf("[subscribeEmail] emails: %v", emails)
+	log.Printf("[SubscribeEmail] emails: %v", emails)
 
 	for _, e := range emails {
 		if e.Email == email {
@@ -83,7 +83,7 @@ func (e *Endpoint) SendEmails(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	log.Printf("[sendEmails] rate: %f", rate)
+	log.Printf("[SendEmails] rate: %f", rate)
 
 	subject := "A Galaxy Far, Far Away From The Current BTCUAH Exchange Rate"
 	text := `
@@ -117,7 +117,7 @@ func (e *Endpoint) SendEmails(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Read file error: %v", err.Error())})
 	}
 
-	log.Printf("[sendEmails] json: %v", json)
+	log.Printf("[SendEmails] json: %v", json)
 
 	// Create a new array without the CreatedAt field
 	emails := make([]string, len(json))
@@ -128,13 +128,13 @@ func (e *Endpoint) SendEmails(ctx echo.Context) error {
 
 		err = e.s.SendEmail(subject, content, to, nil, nil, nil)
 		if err != nil {
-			log.Printf("[subscribeEmail] failed to send email to %v: %v", to, err)
+			log.Printf("[SubscribeEmail] failed to send email to %v: %v", to, err)
 		} else {
-			log.Printf("[subscribeEmail] successfully sent email to %v", to)
+			log.Printf("[SubscribeEmail] successfully sent email to %v", to)
 		}
 	}
 
-	log.Printf("[sendEmails] emails: %v", emails)
+	log.Printf("[SendEmails] emails: %v", emails)
 
 	return ctx.JSON(http.StatusOK, map[string]string{
 		"message": "E-mailʼи відправлено",

@@ -35,7 +35,7 @@ func New() (*App, error) {
 	app.service = service.New()
 	app.endpoint = endpoint.New(app.service)
 
-	fmt.Println("Hello, gen tech!")
+	fmt.Println("[New] hello, gen tech!")
 
 	app.echo = echo.New()
 
@@ -53,18 +53,17 @@ func New() (*App, error) {
 	apiGroup.POST("/subscribe", app.endpoint.SubscribeEmail, middleware.ParseFormData)
 	apiGroup.POST("/sendEmails", app.endpoint.SendEmails)
 
-	defer fmt.Println("Server stopped")
-
 	return app, nil
 }
 
 func (app *App) Run() error {
-	fmt.Println("server started")
+	fmt.Println("[Run] server started")
 
 	err := app.echo.Start(port)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer fmt.Println("[Run] server stopped")
 
 	return nil
 }
