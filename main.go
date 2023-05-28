@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/smtp"
 	"net/url"
 	"os"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
+	"github.com/jordan-wright/email"
 )
 
 const (
@@ -24,6 +26,11 @@ const (
 )
 
 const symbol string = "BTCUAH"
+
+const (
+	smtpAuthAddress   = "smtp.gmail.com"
+	smtpServerAddress = "smtp.gmail.com:587"
+)
 
 type RateResponse struct {
 	Symbol string `json:"symbol"`
@@ -44,6 +51,23 @@ type Config struct {
 	EmailSenderName      string        `mapstructure:"EMAIL_SENDER_NAME"`
 	EmailSenderAddress   string        `mapstructure:"EMAIL_SENDER_ADDRESS"`
 	EmailSenderPassword  string        `mapstructure:"EMAIL_SENDER_PASSWORD"`
+}
+
+type EmailSender interface {
+	SendEmail(
+		subject string,
+		content string,
+		to []string,
+		cc []string,
+		bcc []string,
+		attachFiles []string,
+	) error
+}
+
+type GmailSender struct {
+	name              string
+	fromEmailAddress  string
+	fromEmailPassword string
 }
 
 func main() {
@@ -119,6 +143,47 @@ func subscribeEmail(c echo.Context) error {
 }
 
 func sendEmails(c echo.Context) error {
+	rate, err := getBinanceRate()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	log.Printf("[sendEmails] rate: %f", rate)
+
+	config, err := LoadConfig(".")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	sender := NewGmailSender(config.EmailSenderName, config.EmailSenderAddress, config.EmailSenderPassword)
+
+	subject := "A Galaxy Far, Far Away From The Current BTCUAH Exchange Rate"
+	text := `
+	<h1>Hello there</h1>
+	<p>I trust thi
+	s message finds you well amidst the bluster of the cosmos. I am writing to you from the dunes of Tatooine, under the twin suns where much is uncertain but the shifting sands.
+	
+	In the boundless expanse of the universe, one constant has always intrigued me - the fluctuating dance of currency exchange rates. A dance that, in many ways, resembles the delicate balance between the light and dark sides of the Force.
+	
+	At present, the Bitcoin (BTC) to Ukrainian Hryvnia (UAH) exchange rate stands as such:
+	
+	BTC: 1
+	UAH: %f
+	
+	Just as the Force flows through and around us, so too does the rhythm of finance, reminding us of the interconnectedness of all things. Like the murmurs of the midichlorians, these values whisper stories of the world economy's ebb and flow, the strength of currencies, and the dynamics of the crypto market.
+	
+	Though it might seem as remote and indifferent as the binary suns of Tatooine, I encourage you to embrace this knowledge as a Jedi would -- with curiosity, caution, and a readiness to learn.
+	
+	The ever-shifting exchange rate may seem like a wretched hive of scum and volatility, but I am confident that with vigilance and wisdom, we can navigate its intricacies just as surely as a seasoned pilot navigates an asteroid field.
+	
+	I shall endeavor to keep you updated on this interstellar journey through the realm of financial constellations. May the Force, and the wisdom to harness its essence, be with you always.
+	
+	Your humble servant in the Force,
+	
+	Ben Kenobi</a></p>
+	`
+	content := fmt.Sprintf(text, rate)
+
 	json, err := readJson("emails.json")
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Read file error: %v", err.Error())})
@@ -130,18 +195,18 @@ func sendEmails(c echo.Context) error {
 	emails := make([]string, len(json))
 	for i, email := range json {
 		emails[i] = email.Email
+
+		to := []string{emails[i]}
+
+		err = sender.SendEmail(subject, content, to, nil, nil, nil)
+		if err != nil {
+			log.Printf("[subscribeEmail] failed to send email to %v: %v", to, err)
+		} else {
+			log.Printf("[subscribeEmail] successfully sent email to %v", to)
+		}
 	}
 
 	log.Printf("[sendEmails] emails: %v", emails)
-
-	rate, err := getBinanceRate()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
-	log.Printf("[sendEmails] rate: %f", rate)
-
-	// TODO: implement sending emails with net/smtp
 
 	return c.JSON(http.StatusOK, map[string]string{
 		"message": "E-mailʼи відправлено",
@@ -304,4 +369,39 @@ func LoadConfig(path string) (config Config, err error) {
 
 	err = viper.Unmarshal(&config)
 	return
+}
+
+func NewGmailSender(name string, fromEmailAddress string, fromEmailPassword string) EmailSender {
+	return &GmailSender{
+		name:              name,
+		fromEmailAddress:  fromEmailAddress,
+		fromEmailPassword: fromEmailPassword,
+	}
+}
+
+func (sender *GmailSender) SendEmail(
+	subject string,
+	content string,
+	to []string,
+	cc []string,
+	bcc []string,
+	attachFiles []string,
+) error {
+	e := email.NewEmail()
+	e.From = fmt.Sprintf("%s <%s>", sender.name, sender.fromEmailAddress)
+	e.Subject = subject
+	e.HTML = []byte(content)
+	e.To = to
+	e.Cc = cc
+	e.Bcc = bcc
+
+	for _, f := range attachFiles {
+		_, err := e.AttachFile(f)
+		if err != nil {
+			return fmt.Errorf("failed to attach file %s: %w", f, err)
+		}
+	}
+
+	smtpAuth := smtp.PlainAuth("", sender.fromEmailAddress, sender.fromEmailPassword, smtpAuthAddress)
+	return e.Send(smtpServerAddress, smtpAuth)
 }
