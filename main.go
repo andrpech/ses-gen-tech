@@ -11,6 +11,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -86,7 +87,7 @@ func subscribeEmail(c echo.Context) error {
 
 	for _, e := range emails {
 		if e.Email == email {
-			return c.JSON(http.StatusConflict, map[string]string{"error": fmt.Sprintf("Email already exists from '%v'", e.CreatedAt)})
+			return c.JSON(http.StatusConflict, map[string]string{"error": fmt.Sprintf("Email '%v' already exists from '%v'.", e.Email, e.CreatedAt)})
 		}
 	}
 
@@ -166,7 +167,7 @@ func parseFormData(c echo.Context) (string, error) {
 		return "", errors.New("Invalid email")
 	}
 
-	return email, nil
+	return strings.ToLower(email), nil
 }
 
 func isEmailValid(email string) bool {
