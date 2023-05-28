@@ -17,3 +17,6 @@
 
 # Db
 emails.json
+
+# Env
+.env*

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -39,10 +40,23 @@ type Email struct {
 	CreatedAt string `json:"createdAt"`
 }
 
+type Config struct {
+	EmailSenderName      string        `mapstructure:"EMAIL_SENDER_NAME"`
+	EmailSenderAddress   string        `mapstructure:"EMAIL_SENDER_ADDRESS"`
+	EmailSenderPassword  string        `mapstructure:"EMAIL_SENDER_PASSWORD"`
+}
+
 func main() {
 	fmt.Println("Hello, gen tech!")
 
 	e := echo.New()
+
+	config, err := LoadConfig(".")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("Config: %v", config)
 
 	apiGroup := e.Group(apiPath)
 
@@ -274,4 +288,20 @@ func getBinanceRate () (float64, error ){
 	}
 
 	return num, nil
+}
+
+func LoadConfig(path string) (config Config, err error) {
+	viper.AddConfigPath(path)
+	viper.SetConfigName(".env")
+	viper.SetConfigType("env")
+
+	viper.AutomaticEnv()
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		return
+	}
+
+	err = viper.Unmarshal(&config)
+	return
 }
