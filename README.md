@@ -100,7 +100,7 @@ docker pull andrpech/gses3-btc-application
 
 ### API
 
-According to the tech task, at the moment application supports 3 needed routes and the healthcheck:
+According to the [tech task](https://github.com/AndriiPopovych/gses/blob/main/gses2swagger.yaml), at the moment application supports 3 needed routes and the healthcheck:
 
 - `GET /api/rate`: calls [Binance](https://www.binance.com/en/trade/BTC_UAH) api and returns current BTCUAH rate as `float64`;
 - `POST /api/subscribe`:
