@@ -87,29 +87,57 @@ func (e *Endpoint) SendEmails(ctx echo.Context) error {
 
 	subject := "A Galaxy Far, Far Away From The Current BTCUAH Exchange Rate"
 	text := `
-	<h1>Hello there</h1>
-	<p>I trust thi
-	s message finds you well amidst the bluster of the cosmos. I am writing to you from the dunes of Tatooine, under the twin suns where much is uncertain but the shifting sands.
-	
-	In the boundless expanse of the universe, one constant has always intrigued me - the fluctuating dance of currency exchange rates. A dance that, in many ways, resembles the delicate balance between the light and dark sides of the Force.
-	
-	At present, the Bitcoin (BTC) to Ukrainian Hryvnia (UAH) exchange rate stands as such:
-	
-	BTC: 1
-	UAH: %f
-	
-	Just as the Force flows through and around us, so too does the rhythm of finance, reminding us of the interconnectedness of all things. Like the murmurs of the midichlorians, these values whisper stories of the world economy's ebb and flow, the strength of currencies, and the dynamics of the crypto market.
-	
-	Though it might seem as remote and indifferent as the binary suns of Tatooine, I encourage you to embrace this knowledge as a Jedi would -- with curiosity, caution, and a readiness to learn.
-	
-	The ever-shifting exchange rate may seem like a wretched hive of scum and volatility, but I am confident that with vigilance and wisdom, we can navigate its intricacies just as surely as a seasoned pilot navigates an asteroid field.
-	
-	I shall endeavor to keep you updated on this interstellar journey through the realm of financial constellations. May the Force, and the wisdom to harness its essence, be with you always.
-	
-	Your humble servant in the Force,
-	
-	Ben Kenobi</a></p>
-	`
+	<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .content {
+            margin: 0 auto;
+            max-width: 600px;
+        }
+        h1, h2 {
+            color: #02569B;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <img src="%s" alt="Header image">
+        <h1>Hello there</h1>
+        <p>
+            I trust this message finds you well amidst the bluster of the cosmos. I am writing to you from the dunes of Tatooine, under the twin suns where much is uncertain but the shifting sands.
+        </p>
+				<p>
+						In the boundless expanse of the universe, one constant has always intrigued me - the fluctuating dance of currency exchange rates. A dance that, in many ways, resembles the delicate balance between the light and dark sides of the Force.
+				</p>
+        <h4>At present, the Bitcoin (BTC) to Ukrainian Hryvnia (UAH) exchange rate:</h4>
+        <p>
+            BTC: 1<br>
+            UAH: %f
+        </p>
+				<p>
+						Just as the Force flows through and around us, so too does the rhythm of finance, reminding us of the interconnectedness of all things. Like the murmurs of the midichlorians, these values whisper stories of the world economy's ebb and flow, the strength of currencies, and the dynamics of the crypto market.
+				</p>
+				<p>
+						Though it might seem as remote and indifferent as the binary suns of Tatooine, I encourage you to embrace this knowledge as a Jedi would -- with curiosity, caution, and a readiness to learn.
+				</p>
+				<p>
+						The ever-shifting exchange rate may seem like a wretched hive of scum and volatility, but I am confident that with vigilance and wisdom, we can navigate its intricacies just as surely as a seasoned pilot navigates an asteroid field.
+				</p>
+        <p>
+            I shall endeavor to keep you updated on this interstellar journey through the realm of financial constellations. May the Force, and the wisdom to harness its essence, be with you always.
+        </p>
+        <p>
+            Your humble servant in the Force,<br>
+            Ben Kenobi
+        </p>
+        <img src="%s" alt="Footer image">
+    </div>
+</body>
+</html>`
 	content := fmt.Sprintf(text, rate)
 
 	json, err := e.s.ReadJson("db/emails.json")
